@@ -95,4 +95,4 @@ function LoginPage() {
   );
 }
 
-export default dynamic(() => Promise.resolve(LoginPage), { ssr: false });
+export default LoginPage;
