@@ -2,20 +2,16 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value || null;
+  const token = req.cookies.get("token")?.value;
   const { pathname } = req.nextUrl;
 
-  // ✅ Allow static files & Next internals
-  if (
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/api") ||
-    pathname.includes(".")
-  ) {
+  // ✅ Allow Next.js internals & static files safely
+  if (pathname.startsWith("/_next") || pathname.startsWith("/favicon.ico")) {
     return NextResponse.next();
   }
 
-  // ✅ If NOT logged in → only allow /login
-  if (!token && pathname !== "/login") {
+  // ✅ If NOT logged in → redirect to login
+  if (!token && pathname.startsWith("/users")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
