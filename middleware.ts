@@ -2,23 +2,31 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const token = req.cookies.get("token")?.value;
+  const token = req.cookies.get("token")?.value || null;
   const { pathname } = req.nextUrl;
 
-  // If not logged in → redirect to login
+  // ✅ Allow static files & Next internals
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api") ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  // ✅ If NOT logged in → only allow /login
   if (!token && pathname !== "/login") {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // If logged in → prevent going to login page
+  // ✅ If logged in → block login page
   if (token && pathname === "/login") {
     return NextResponse.redirect(new URL("/users", req.url));
   }
 
-  // ✅ ALWAYS return something
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/", "/users/:path*", "/login"],
+  matcher: ["/users/:path*", "/login"],
 };
