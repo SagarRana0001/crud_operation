@@ -1,6 +1,13 @@
 "use client";
 
-import { addUser, deleteUser, getUsers, updateUser, type User } from "@/lib/api";
+import dynamic from "next/dynamic";
+import {
+  addUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+  type User,
+} from "@/lib/api";
 import { isAuth, logOut } from "@/lib/auth";
 import { userSchema } from "@/lib/schema";
 import { useRouter } from "next/navigation";
@@ -8,22 +15,27 @@ import { useEffect, useState, type FormEvent } from "react";
 
 type ToastType = "success" | "error";
 
-export default function UsersPage() {
+function UsersPage() {
   const router = useRouter();
-  const isLoggedIn = isAuth();
-  const [users, setUsers] = useState<User[]>(() => getUsers());
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [toast, setToast] = useState<{ type: ToastType; message: string } | null>(
-    null,
-  );
+  const [toast, setToast] = useState<{
+    type: ToastType;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    const auth = isAuth();
+    if (!auth) {
       router.replace("/login");
+    } else {
+      setIsLoggedIn(true);
+      setUsers(getUsers());
     }
-  }, [isLoggedIn, router]);
+  }, [router]);
 
   const resetForm = () => {
     setName("");
@@ -36,10 +48,7 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    if (!toast) {
-      return;
-    }
-
+    if (!toast) return;
     const timer = setTimeout(() => setToast(null), 2500);
     return () => clearTimeout(timer);
   }, [toast]);
@@ -54,14 +63,12 @@ export default function UsersPage() {
       showToast("error", message);
       return;
     }
-
     if (editingId) {
       setUsers(updateUser(editingId, { name, email }));
       resetForm();
       showToast("success", "User updated successfully.");
       return;
     }
-
     setUsers(addUser({ name, email }));
     resetForm();
     showToast("success", "User added successfully.");
@@ -69,9 +76,7 @@ export default function UsersPage() {
 
   const handleDelete = (id: number) => {
     setUsers(deleteUser(id));
-    if (editingId === id) {
-      resetForm();
-    }
+    if (editingId === id) resetForm();
     showToast("success", "User deleted successfully.");
   };
 
@@ -86,9 +91,7 @@ export default function UsersPage() {
     router.push("/login");
   };
 
-  if (!isLoggedIn) {
-    return null;
-  }
+  if (!isLoggedIn) return null;
 
   return (
     <main className="min-h-screen bg-slate-100 py-10 px-4">
@@ -167,7 +170,10 @@ export default function UsersPage() {
             <tbody>
               {users.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-slate-500">
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-slate-500"
+                  >
                     No users found. Add your first user.
                   </td>
                 </tr>
@@ -202,3 +208,5 @@ export default function UsersPage() {
     </main>
   );
 }
+
+export default dynamic(() => Promise.resolve(UsersPage), { ssr: false });
